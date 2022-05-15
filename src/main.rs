@@ -62,7 +62,7 @@ async fn kindle_image(path: web::Path<(String,String)>)-> impl Responder {
 
         // Generate the image
         let image = kindle_generator::generate_status_image(key_conf.name, key_conf.title, key_status.text, font_path).expect("Failed to make image");
-        HttpResponse::Ok().content_type("image/jpeg").body(image)
+        HttpResponse::Ok().content_type("image/png").body(image)
     }else{
         HttpResponse::Forbidden().finish()
     }

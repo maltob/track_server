@@ -39,9 +39,9 @@ pub fn  generate_status_image (name: String, title: String, status: String, imag
     overlay(&mut image,&generate_90d_image_from_text(&status,&font,&font_scale)?,(((WIDTH/2) as u32) +font_size as u32) as i64,HEIGHT as i64-(80+text_size(font_scale,&font,&status).0 as i64));
 
     //Convert to a jpg with 75% quality
-    let mut jpg_cur = Cursor::new(Vec::new());
-    image.write_to(&mut jpg_cur, image::ImageOutputFormat::Jpeg(75)).expect("Failed to convert to jpeg");
-    Ok(jpg_cur.get_ref().to_vec())
+    let mut png_cur = Cursor::new(Vec::new());
+    image.write_to(&mut png_cur, image::ImageOutputFormat::Png).expect("Failed to convert to PNG");
+    Ok(png_cur.get_ref().to_vec())
 }
 
 pub fn generate_90d_image_from_text(text: &String, font: &Font, font_scale: &Scale)-> Result<ImageBuffer<Luma<u8>,Vec<u8>>,String> {
