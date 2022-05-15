@@ -57,12 +57,12 @@ async fn kindle_image(path: web::Path<(String,String)>)-> impl Responder {
         //Get everything we need to load the image
         let key_conf = config::key_configuration(&key).expect("Failed to load config");
         let key_status = config::get_status(&key).expect("Failed to load status");
-        let font_path = Path::new("config").join(&key).join(key_conf.font);
-
+        let font_path = Path::new("config").join(&key).join(key_conf.font).into_os_string().into_string().expect("Failed to generate path");
+       
 
         // Generate the image
-        let image = kindle_generator::generate_status_image(key_conf.name, key_conf.title, key_status.text, font_path.into_os_string().into_string().expect("Failed to generate path")).expect("Failed to make image");
-        HttpResponse::Ok().content_type("image/jpeg").body(image)
+        let image = kindle_generator::generate_status_image(key_conf.name, key_conf.title, key_status.text, font_path).expect("Failed to make image");
+        HttpResponse::Ok().content_type("image/png").body(image)
     }else{
         HttpResponse::Forbidden().finish()
     }
