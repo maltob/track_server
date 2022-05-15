@@ -7,6 +7,7 @@ use log::{debug, info};
 use env_logger::Env;
 use std::env;
 use std::path::Path;
+use serde::{Deserialize, Serialize};
 
 
 #[actix_web::main]
@@ -21,7 +22,9 @@ async fn main() -> std::io::Result<()> {
 
 
     HttpServer::new(move || {
-        App::new().service(recv_location).service(kindle_image)
+        App::new().service(recv_location)
+            .service(kindle_image)
+            .service(status)
            
     })
     .bind((bind_v4_addr, bind_port))?
@@ -75,14 +78,23 @@ async fn status(path: web::Path<(String,String)>)-> impl Responder {
     let key = endpoint.as_str().to_string();
     let secret = url_secret.as_str().to_string();
     if config::is_authorized_key_and_secret(&key,&secret) {
-        //TODO
-        HttpResponse::Ok().content_type("application/json").body("")
+
+        //Get everything we need to build the JSON
+        let key_conf = config::key_configuration(&key).expect("Failed to load config");
+        let key_status = config::get_status(&key).expect("Failed to load status");
+
+        //Send the JSON
+        HttpResponse::Ok().content_type("application/json").json(AppJson {name: key_conf.name, title: key_conf.title, status: key_status.text ,media_url: key_status.media_url})
     }else{
         HttpResponse::Forbidden().finish()
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct AppJson {
     name: String,
+    title: String,
+    status: String,
+    media_url: String,
 
 }
