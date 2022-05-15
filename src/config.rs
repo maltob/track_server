@@ -42,8 +42,8 @@ pub fn get_status(key: &String) -> Result<StatusInfo, String> {
     //Load the status from file
     let status_path = Path::new("config").join(&key).join("status.txt");
     let media_path = Path::new("config").join(&key).join("media.txt");
-    let status = fs::read_to_string(status_path).expect("Failed to read status");
-    let media = fs::read_to_string(media_path).expect("Failed to read media_url");
+    let status = fs::read_to_string(status_path).unwrap_or("Unknown".to_string());
+    let media = fs::read_to_string(media_path).unwrap_or("".to_string());
 
     return Ok(StatusInfo { text: status, media_url: media});
 }
