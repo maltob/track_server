@@ -1,0 +1,12 @@
+version: '2.0'
+
+services:
+  track:
+    image: maltobelli/track_server:latest
+    environment:
+      - BIND_ADDR=0.0.0.0
+      - RUST_LOG=info
+    volumes:
+       - config:/app/config
+    ports:
+       - 127.0.0.1:8080:8080
