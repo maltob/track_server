@@ -2,6 +2,7 @@ use std::path::Path;
 use std::io;
 use serde::{Deserialize, Serialize};
 use csv::Reader;
+use log::{debug, info};
 use toml;
 use std::fs;
 
@@ -67,11 +68,12 @@ pub fn location_info( longitude: f64, latitude: f64, key: &String) -> Result<Sta
         //Check all the lines for a matching location
         for result in loc_rdr.deserialize() {
             let si: TrackServerInfo = result.unwrap();
-            
+            debug!("comparing {} {} vs {} {} {} {} for {}",longitude, latitude, si.long_1, si.long_2, si.lat_1, si.lat_2, si.text);
             if  check_location(longitude, latitude, si.long_1, si.long_2, si.lat_1, si.lat_2) {
                     //We are inside the bounding box
                     let rsi = StatusInfo { text: si.text, media_url: si.media_url};
                     save_status(&key,&rsi)?;
+                    info!("Saving found status {}",&rsi.text);
                     return Ok(rsi);
             }
         }

@@ -12,4 +12,4 @@ A web server that provides a kindle image based on your location via Overland fo
 7. Test out the screensaver update on your kindle
 
 ## Example photo
-![Employee data](/repository/images/ExampleImage.png?raw=true "Employee Data title")
+![Employee data](/images/ExampleImage.png?raw=true "Example of the image generated")
