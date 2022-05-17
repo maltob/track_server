@@ -5,6 +5,7 @@ use csv::Reader;
 use log::{debug, info};
 use toml;
 use std::fs;
+use chrono::{DateTime, Utc};
 
 pub fn is_authorized_key(key: &String) -> bool {
     // Just check the config.toml exists for the endpoint
@@ -76,6 +77,36 @@ pub fn save_status (key: &String, si: &StatusInfo) -> Result<bool, String> {
     Ok(true)
 }
 
+pub fn save_calendar(key: &String, body: &String)-> Result<bool, String> {
+    let cal_path = Path::new("config").join(&key).join("calendar.csv");
+    fs::write(cal_path,&body).expect("Failed to save status");
+    Ok(true)
+}
+
+pub fn get_calendar_info(key: &String) -> Result<StatusInfo, String> {
+    let path = Path::new("config").join(&key).join("calendar.csv");
+    let now = Utc::now();
+    if path.exists() {
+        let mut cal_rdr = csv::Reader::from_path(path).expect("Failed to read calendar info");
+        for result in cal_rdr.deserialize() {
+            //Check we parse the csv correctly on this line
+            let ci_r = result.ok();
+            if ci_r.is_some() {
+                let ci :CalendarInfo = ci_r.unwrap();
+
+                //Check if the event is currently happening and send back the info if it is
+                info!("{} {}",now.signed_duration_since(ci.start).num_seconds(),now.signed_duration_since(ci.end).num_seconds() );
+                if now.signed_duration_since(ci.start).num_seconds() > 0 && now.signed_duration_since(ci.end).num_seconds() < 0 {
+                    return Ok(StatusInfo { text: ci.text, media_url: ci.media_url});
+                }
+            }else{
+                info!("Error parsing CSV, verify dates are ISO 8601 and the csv is valid");
+            }
+        }
+    }
+    return Err("No calendar or calendar event was found".to_string());
+}
+
 pub fn location_info( longitude: f64, latitude: f64, key: &String) -> Result<StatusInfo, String> {
     // Parse the locations and return the specific text
     let path = Path::new("config").join(&key).join("locations.csv");
@@ -136,4 +167,12 @@ pub struct TrackServerInfo {
 pub struct StatusInfo {
     pub text: String,
     pub media_url: String,
+}
+
+#[derive(Deserialize)]
+struct CalendarInfo {
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    text: String,
+    media_url: String,
 }

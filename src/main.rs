@@ -24,7 +24,7 @@ async fn main() -> std::io::Result<()> {
         App::new().service(recv_location)
             .service(kindle_image)
             .service(status)
-           
+           .service(recv_calendar)
     })
     .bind((bind_v4_addr, bind_port))?
     .run()
@@ -37,6 +37,8 @@ async fn recv_location(endpoint: web::Path<(String,)>, body: web::Bytes)-> impl 
     let key = endpoint.into_inner().0.as_str().to_string();
     if config::is_authorized_key(&key)  {
         debug!("Posting of location to endpoint {}", &key);
+
+        //Convert the overland info to an object, then get the last item in locations which should be the most recent
         let resp:overland::OverlandMessage = serde_json::from_str(std::str::from_utf8(&body).expect("Converting bytes for body  to string")).expect("Error parsing incoming JSON");
         let recent = resp.locations.last().expect("Error getting last location");
         debug!("{} {}",recent.geometry.coordinates[1],recent.geometry.coordinates[0]);
@@ -55,10 +57,14 @@ async fn recv_calendar(path: web::Path<(String,String)>, body: web::Bytes)-> imp
     let (endpoint, url_secret) = path.into_inner();
     let key = endpoint.as_str().to_string();
     let secret = url_secret.as_str().to_string();
-    if config::is_authorized_key_and_calendar_secret(&key,&secret)  {
+    //Limit the post size to 1 MB
+    if body.len() < 1_000_000 &&config::is_authorized_key_and_calendar_secret(&key,&secret)  {
+        //Save the calendar
         debug!("Updating calendar {}", &key);
         let calendar_info = std::str::from_utf8(&body).expect("Converting bytes for body  to string");
-        
+        config::save_calendar(&key,&calendar_info.to_string()).expect("Failed to save calendar info");
+
+        //Let the uploader know it worked
         HttpResponse::Ok()
         
     }else{
@@ -95,12 +101,21 @@ async fn status(path: web::Path<(String,String)>)-> impl Responder {
     let secret = url_secret.as_str().to_string();
     if config::is_authorized_key_and_secret(&key,&secret) {
         debug!("Request to JSON endpoint {}", &key);
+        
         //Get everything we need to build the JSON
         let key_conf = config::key_configuration(&key).expect("Failed to load config");
         let key_status = config::get_status(&key).expect("Failed to load status");
+        let mut status = key_status.text;
+        let mut media_url = key_status.media_url;
 
+        //If we have a calendar and a matching event, set the status to the meeting
+        if let Ok(cal_status) = config::get_calendar_info(&key) {
+            status = cal_status.text; 
+            media_url = cal_status.media_url;
+        }
+       
         //Send the JSON
-        HttpResponse::Ok().content_type("application/json").json(AppJson {name: key_conf.name, title: key_conf.title, status: key_status.text ,media_url: key_status.media_url})
+        HttpResponse::Ok().content_type("application/json").json(AppJson {name: key_conf.name, title: key_conf.title, status: status ,media_url: media_url})
     }else{
         HttpResponse::Forbidden().finish()
     }
