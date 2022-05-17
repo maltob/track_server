@@ -22,5 +22,12 @@ A web server that provides a kindle image based on your location via Overland fo
 7. Use the JSON endpoint to pull in data for your app/webpage/display. Ex: http://something.tld/locations/fi908gfhg/json/SecretPhrase
 
 
+### Calendar endpoint
+1. Enable the calendar upload point by setting a calendar_password in the config.toml
+2. Create a csv file with start,end,text,media_url fields in your preferred scripting language
+3. Post the .csv to http://something.tld/locations/fi908gfhg/calendar/SecretCalendarPhrase, replacing the key and SecretCalendarPhrase with the appropriate ones
+4. Currently running calendar events will now override your location when you get the JSON status at Ex: http://something.tld/locations/fi908gfhg/json/SecretPhrase, if you want to get the location text while ignoring the calendar events add a ?location_only=false to the URL
+
 ## Example photo
 ![Employee data](/images/ExampleImage.png?raw=true "Example of the image generated")
+
