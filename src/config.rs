@@ -5,6 +5,7 @@ use csv::Reader;
 use log::{debug, info};
 use toml;
 use std::fs;
+use chrono::{DateTime, Utc};
 
 pub fn is_authorized_key(key: &String) -> bool {
     // Just check the config.toml exists for the endpoint
@@ -24,6 +25,22 @@ pub fn is_authorized_key_and_secret(key: &String, secret: &String) -> bool {
         false
     }
 }
+
+
+pub fn is_authorized_key_and_calendar_secret(key: &String, secret: &String) -> bool {
+    // Check if the key is correct and the secret matches
+    if is_authorized_key(&key) {
+        let kc = key_configuration(&key).expect("Failed to load config");
+        if kc.calendar_password != None {
+         kc.calendar_password.expect("No calendar password") == secret.to_string()
+        }else{
+            false
+        }
+    }else{
+        false
+    }
+}
+
 
 
 pub fn key_configuration( key: &String) -> Result<KeyConfig, String> {
@@ -58,6 +75,37 @@ pub fn save_status (key: &String, si: &StatusInfo) -> Result<bool, String> {
     fs::write(status_path,&si.text).expect("Failed to save status");
     fs::write(media_path,&si.media_url).expect("Failed to save media_url");
     Ok(true)
+}
+
+pub fn save_calendar(key: &String, body: &String)-> Result<bool, String> {
+    let cal_path = Path::new("config").join(&key).join("calendar.csv");
+    fs::write(cal_path,&body).expect("Failed to save status");
+    Ok(true)
+}
+
+pub fn get_calendar_info(key: &String) -> Result<StatusInfo, String> {
+    let path = Path::new("config").join(&key).join("calendar.csv");
+    let now = Utc::now();
+    if path.exists() {
+        let mut cal_rdr = csv::Reader::from_path(path).expect("Failed to read calendar info");
+        for result in cal_rdr.deserialize() {
+            //Check we parse the csv correctly on this line
+            let ci_r = result.ok();
+            if ci_r.is_some() {
+                let ci :CalendarInfo = ci_r.unwrap();
+
+                //Check if the event is currently happening and send back the info if it is
+                debug!("Date compare {} {}",now.signed_duration_since(ci.start).num_seconds(),now.signed_duration_since(ci.end).num_seconds() );
+                if now.signed_duration_since(ci.start).num_seconds() > 0 && now.signed_duration_since(ci.end).num_seconds() < 0 {
+                    debug!("Date match" );
+                    return Ok(StatusInfo { text: ci.text, media_url: ci.media_url});
+                }
+            }else{
+                info!("Error parsing CSV, verify dates are ISO 8601 and the csv is valid");
+            }
+        }
+    }
+    return Err("No calendar or calendar event was found".to_string());
 }
 
 pub fn location_info( longitude: f64, latitude: f64, key: &String) -> Result<StatusInfo, String> {
@@ -100,6 +148,8 @@ pub struct KeyConfig {
     pub font: String,
     pub generate_kindle: bool,
     password: String,
+    #[serde(default)]
+    calendar_password: Option<String>,
     default_status: String,
     default_media_url: String,
 }
@@ -118,4 +168,12 @@ pub struct TrackServerInfo {
 pub struct StatusInfo {
     pub text: String,
     pub media_url: String,
+}
+
+#[derive(Deserialize)]
+struct CalendarInfo {
+    start: DateTime<Utc>,
+    end: DateTime<Utc>,
+    text: String,
+    media_url: String,
 }
