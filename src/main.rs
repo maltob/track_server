@@ -8,7 +8,7 @@ use env_logger::Env;
 use std::env;
 use std::path::Path;
 use serde::{Deserialize, Serialize};
-
+use actix_web::web::Query;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -95,24 +95,30 @@ async fn kindle_image(path: web::Path<(String,String)>)-> impl Responder {
 
 
 #[get("/location/{endpoint}/json/{url_secret}")]
-async fn status(path: web::Path<(String,String)>)-> impl Responder {
+async fn status(path: web::Path<(String,String)>, params: Query<StatusParams>)-> impl Responder {
     let (endpoint, url_secret) = path.into_inner();
     let key = endpoint.as_str().to_string();
     let secret = url_secret.as_str().to_string();
     if config::is_authorized_key_and_secret(&key,&secret) {
         debug!("Request to JSON endpoint {}", &key);
-        
+
         //Get everything we need to build the JSON
         let key_conf = config::key_configuration(&key).expect("Failed to load config");
         let key_status = config::get_status(&key).expect("Failed to load status");
         let mut status = key_status.text;
         let mut media_url = key_status.media_url;
 
-        //If we have a calendar and a matching event, set the status to the meeting
-        if let Ok(cal_status) = config::get_calendar_info(&key) {
-            status = cal_status.text; 
-            media_url = cal_status.media_url;
+        // check if we want to ignore calendar events
+        if params.location_only != None && params.location_only.unwrap() == true {
+            debug!("Location only JSON request; skipping calendar")
+        }else{
+            //If we have a calendar and a matching event, set the status to the meeting
+            if let Ok(cal_status) = config::get_calendar_info(&key) {
+                status = cal_status.text; 
+                media_url = cal_status.media_url;
+            }
         }
+        
        
         //Send the JSON
         HttpResponse::Ok().content_type("application/json").json(AppJson {name: key_conf.name, title: key_conf.title, status: status ,media_url: media_url})
@@ -128,4 +134,9 @@ pub struct AppJson {
     status: String,
     media_url: String,
 
+}
+
+#[derive(Deserialize)]
+struct StatusParams {
+    location_only: Option<bool>,
 }

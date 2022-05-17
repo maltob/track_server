@@ -95,8 +95,9 @@ pub fn get_calendar_info(key: &String) -> Result<StatusInfo, String> {
                 let ci :CalendarInfo = ci_r.unwrap();
 
                 //Check if the event is currently happening and send back the info if it is
-                info!("{} {}",now.signed_duration_since(ci.start).num_seconds(),now.signed_duration_since(ci.end).num_seconds() );
+                debug!("Date compare {} {}",now.signed_duration_since(ci.start).num_seconds(),now.signed_duration_since(ci.end).num_seconds() );
                 if now.signed_duration_since(ci.start).num_seconds() > 0 && now.signed_duration_since(ci.end).num_seconds() < 0 {
+                    debug!("Date match" );
                     return Ok(StatusInfo { text: ci.text, media_url: ci.media_url});
                 }
             }else{
