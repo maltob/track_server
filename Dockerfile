@@ -18,7 +18,6 @@ RUN adduser \
     "${USER}"
 COPY ./Cargo.toml  .
 COPY ./src/ /app/src/
-COPY ./Cargo.lock .
 RUN cargo build --target x86_64-unknown-linux-musl --release
 
 FROM debian:bullseye-slim
