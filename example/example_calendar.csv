@@ -1,0 +1,3 @@
+start,end,text,media_url
+2022-05-16T08:42:00-04:00,2022-05-18T02:42:00-04:00,Timezone Event,https://image.img/image.png
+2022-05-19T08:00:00Z,2022-05-19T16:00:00Z,UTC Event,https://image.img/image.png
