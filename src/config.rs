@@ -26,6 +26,22 @@ pub fn is_authorized_key_and_secret(key: &String, secret: &String) -> bool {
 }
 
 
+pub fn is_authorized_key_and_calendar_secret(key: &String, secret: &String) -> bool {
+    // Check if the key is correct and the secret matches
+    if is_authorized_key(&key) {
+        let kc = key_configuration(&key).expect("Failed to load config");
+        if kc.calendar_password != None {
+         kc.calendar_password.expect("No calendar password") == secret.to_string()
+        }else{
+            false
+        }
+    }else{
+        false
+    }
+}
+
+
+
 pub fn key_configuration( key: &String) -> Result<KeyConfig, String> {
     // Pull in the general configuration
     let path = Path::new("config").join(&key).join("config.toml");
@@ -100,6 +116,8 @@ pub struct KeyConfig {
     pub font: String,
     pub generate_kindle: bool,
     password: String,
+    #[serde(default)]
+    calendar_password: Option<String>,
     default_status: String,
     default_media_url: String,
 }

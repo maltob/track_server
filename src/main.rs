@@ -49,6 +49,23 @@ async fn recv_location(endpoint: web::Path<(String,)>, body: web::Bytes)-> impl 
     }
 }
 
+
+#[post("/location/{endpoint}/calendar/{secret}")]
+async fn recv_calendar(path: web::Path<(String,String)>, body: web::Bytes)-> impl Responder {
+    let (endpoint, url_secret) = path.into_inner();
+    let key = endpoint.as_str().to_string();
+    let secret = url_secret.as_str().to_string();
+    if config::is_authorized_key_and_calendar_secret(&key,&secret)  {
+        debug!("Updating calendar {}", &key);
+        let calendar_info = std::str::from_utf8(&body).expect("Converting bytes for body  to string");
+        
+        HttpResponse::Ok()
+        
+    }else{
+        HttpResponse::Forbidden()
+    }
+}
+
 #[get("/location/{endpoint}/kindle/{url_secret}")]
 async fn kindle_image(path: web::Path<(String,String)>)-> impl Responder {
     let (endpoint, url_secret) = path.into_inner();
